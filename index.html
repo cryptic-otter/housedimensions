@@ -165,6 +165,14 @@
     .photo-tile .del:hover { background: var(--danger); }
     .upload-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
     input[type="file"] { font-size: 14px; }
+    input[type="file"]:disabled { opacity: 0.5; cursor: progress; }
+    .upload-busy { font-size: 14px; color: var(--muted); }
+    .spinner {
+      width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid rgba(20, 24, 33, 0.2); border-top-color: var(--accent, #2f6df6);
+      display: inline-block; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* Modal forms */
     .overlay {
@@ -497,8 +505,10 @@
       const list = photos || [];
       let html = '<div class="section-title"><h2>Photos</h2></div>';
       html += '<div class="upload-row">' +
-        '<input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp" multiple />' +
-        '<button class="btn small" onclick="uploadPhotos(\'' + kind + '\')">Upload</button></div>';
+        '<input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp" multiple ' +
+        'onchange="uploadPhotos(\'' + kind + '\')" />' +
+        '<span id="photoSpinner" class="spinner" hidden></span>' +
+        '<span id="photoBusy" class="upload-busy" hidden>Uploading…</span></div>';
 
       if (list.length === 0) {
         html += '<div class="empty"><p>No photos yet — upload JPG, PNG or WEBP images above.</p></div>';
@@ -642,11 +652,22 @@
         : kind === 'measurement'
         ? '/api/rooms/' + state.roomId + '/measurements/' + state.measurementId + '/photos'
         : '/api/rooms/' + state.roomId + '/furniture/' + state.furnitureId + '/photos';
+      // Busy state while the upload is in flight.
+      const spinner = document.getElementById('photoSpinner');
+      const busy = document.getElementById('photoBusy');
+      input.disabled = true;
+      if (spinner) spinner.hidden = false;
+      if (busy) busy.hidden = false;
       try {
         await api(url, { method: 'POST', body: fd });
         toast('Photo(s) uploaded.');
-        render();
-      } catch (err) { toast(err.message, true); }
+        render(); // re-renders the section, replacing the input with a fresh, enabled one
+      } catch (err) {
+        toast(err.message, true);
+        input.disabled = false;
+        if (spinner) spinner.hidden = true;
+        if (busy) busy.hidden = true;
+      }
     }
 
     async function deletePhoto(kind, filename) {
