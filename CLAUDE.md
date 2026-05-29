@@ -9,11 +9,10 @@ npm install   # first time only
 npm start     # starts at http://localhost:3000
 ```
 
-If port 3000 is already in use, kill the occupying process first:
+If port 3000 is already in use:
 
-```powershell
-$proc = Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess
-if ($proc) { Stop-Process -Id $proc -Force }
+```
+npx kill-port 3000
 ```
 
 There is no build step, no test suite, and no linter.
@@ -62,7 +61,8 @@ The front end is a client-side SPA with four views (`home`, `room`, `measurement
 | `renderFurniture(view)` | Fetches the parent room, finds the furniture item by `state.furnitureId`, renders detail |
 | `dimText(d)` | Formats a dimensions object as `L: 80 × W: 12 × H: 29`; skips blank values; used on cards |
 | `dimPills(d)` | Formats dimensions as labelled pill badges (`Length: 80` etc.); used on detail pages |
-| `photoSection(kind, photos)` | Renders the upload control + thumbnail grid for rooms or furniture |
+| `photoSection(kind, photos)` | Renders the file input + thumbnail grid for rooms, measurements, and furniture. Selecting a file auto-uploads immediately (no Upload button) via an `onchange` handler calling `uploadPhotos(kind)` |
+| `uploadPhotos(kind)` | Builds a `FormData`, POSTs to the correct photo endpoint for the current view, shows a spinner while in flight, then re-renders |
 | `openRoomForm(room?)` / `openMeasurementForm(item?)` / `openFurnitureForm(item?)` | Opens the shared modal form; pre-fills if editing |
 | `jsArg(obj)` | Encodes an object as a URL-safe inline `onclick` argument (avoids quote escaping issues) |
 
