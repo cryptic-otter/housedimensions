@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>House Dimensions Hub</title>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --surface: #ffffff;
+      --border: #e3e7ef;
+      --ink: #1f2733;
+      --ink-soft: #5a6573;
+      --accent: #4f6df5;
+      --accent-dark: #3b56d4;
+      --danger: #e0535b;
+      --danger-dark: #c43e46;
+      --radius: 14px;
+      --shadow: 0 2px 8px rgba(31, 39, 51, 0.06), 0 8px 24px rgba(31, 39, 51, 0.05);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.5;
+    }
+    a { color: inherit; }
+    header.topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 28px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    header.topbar .logo {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      cursor: pointer;
+    }
+    header.topbar .logo span { color: var(--accent); }
+    .container { max-width: 1080px; margin: 0 auto; padding: 28px; }
+
+    /* Breadcrumb */
+    .crumbs { font-size: 14px; color: var(--ink-soft); margin-bottom: 18px; }
+    .crumbs a { text-decoration: none; cursor: pointer; }
+    .crumbs a:hover { color: var(--accent); }
+    .crumbs .sep { margin: 0 8px; opacity: 0.5; }
+
+    .page-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .page-head h1 { margin: 0; font-size: 28px; letter-spacing: -0.5px; }
+    .page-head .sub { color: var(--ink-soft); margin-top: 4px; }
+
+    /* Buttons */
+    .btn {
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      transition: background 0.15s ease, transform 0.05s ease;
+      white-space: nowrap;
+    }
+    .btn:hover { background: var(--accent-dark); }
+    .btn:active { transform: translateY(1px); }
+    .btn.secondary { background: var(--surface); color: var(--ink); border-color: var(--border); }
+    .btn.secondary:hover { background: #f0f2f8; }
+    .btn.danger { background: var(--danger); }
+    .btn.danger:hover { background: var(--danger-dark); }
+    .btn.small { padding: 6px 12px; font-size: 13px; }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    /* Cards grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 18px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      border-color: #cfd7ea;
+      box-shadow: 0 6px 16px rgba(31, 39, 51, 0.1), 0 14px 34px rgba(31, 39, 51, 0.08);
+    }
+    .card h3 { margin: 0 0 8px; font-size: 18px; }
+    .card .dims { color: var(--ink-soft); font-size: 14px; }
+    .card .meta { margin-top: 12px; font-size: 13px; color: var(--ink-soft); display: flex; gap: 14px; }
+    .card .thumb-strip { display: flex; gap: 6px; margin-top: 14px; }
+    .card .thumb-strip img { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
+    .card .thumb-strip .more { width: 48px; height: 48px; border-radius: 8px; background: #eef1f8; color: var(--ink-soft);
+      display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+
+    /* Detail panel */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .panel h2 { margin: 0 0 6px; font-size: 22px; }
+    .dim-pills { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0; }
+    .pill {
+      background: #eef1fb;
+      color: var(--accent-dark);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .notes { color: var(--ink-soft); white-space: pre-wrap; margin-top: 8px; }
+    .section-title {
+      display: flex; align-items: center; justify-content: space-between;
+      margin: 30px 0 14px; gap: 12px; flex-wrap: wrap;
+    }
+    .section-title h2 { margin: 0; font-size: 20px; }
+
+    /* Empty states */
+    .empty {
+      text-align: center;
+      padding: 50px 20px;
+      background: var(--surface);
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      color: var(--ink-soft);
+    }
+    .empty p { margin: 0 0 16px; font-size: 15px; }
+
+    /* Photo gallery */
+    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+    .photo-tile { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: #eef1f8; }
+    .photo-tile img { width: 100%; height: 130px; object-fit: cover; display: block; cursor: zoom-in; }
+    .photo-tile .del {
+      position: absolute; top: 6px; right: 6px;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(20, 24, 33, 0.65); color: #fff; border: none;
+      cursor: pointer; font-size: 15px; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .photo-tile .del:hover { background: var(--danger); }
+    .upload-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    input[type="file"] { font-size: 14px; }
+
+    /* Modal forms */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(20, 24, 33, 0.55);
+      display: none; align-items: center; justify-content: center; z-index: 50; padding: 20px;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); border-radius: var(--radius);
+      width: 100%; max-width: 440px; padding: 26px; box-shadow: var(--shadow);
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal h3 { margin: 0 0 18px; font-size: 20px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--ink-soft); }
+    .field input, .field textarea {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+      border-radius: 10px; font-size: 14px; font-family: inherit; background: #fbfcfe;
+    }
+    .field input:focus, .field textarea:focus { outline: none; border-color: var(--accent); background: #fff; }
+    .field textarea { resize: vertical; min-height: 70px; }
+    .dim-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .form-error { color: var(--danger); font-size: 13px; margin-bottom: 12px; min-height: 0; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+
+    /* Lightbox */
+    .lightbox {
+      position: fixed; inset: 0; background: rgba(10, 12, 18, 0.92);
+      display: none; align-items: center; justify-content: center; z-index: 100;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox img { max-width: 90vw; max-height: 86vh; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+    .lightbox .lb-btn {
+      position: absolute; background: rgba(255,255,255,0.12); color: #fff; border: none;
+      width: 52px; height: 52px; border-radius: 50%; font-size: 26px; cursor: pointer; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .lightbox .lb-btn:hover { background: rgba(255,255,255,0.25); }
+    .lightbox .lb-prev { left: 24px; top: 50%; transform: translateY(-50%); }
+    .lightbox .lb-next { right: 24px; top: 50%; transform: translateY(-50%); }
+    .lightbox .lb-close { top: 22px; right: 24px; width: 44px; height: 44px; font-size: 22px; }
+    .lightbox .lb-count { position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); color: #cfd4e0; font-size: 14px; }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(120%);
+      background: var(--ink); color: #fff; padding: 12px 20px; border-radius: 10px;
+      font-size: 14px; z-index: 200; transition: transform 0.25s ease; box-shadow: var(--shadow);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.error { background: var(--danger-dark); }
+    .loading { color: var(--ink-soft); padding: 30px 0; text-align: center; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="logo" onclick="goHome()">House <span>Dimensions</span> Hub</div>
+  </header>
+
+  <main class="container" id="view"></main>
+
+  <!-- Room/Furniture form modal -->
+  <div class="overlay" id="formOverlay">
+    <div class="modal">
+      <h3 id="formTitle">Add</h3>
+      <div class="form-error" id="formError"></div>
+      <form id="entityForm" autocomplete="off">
+        <div class="field">
+          <label for="f-name">Name <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="f-name" name="name" placeholder="e.g. Living Room" />
+        </div>
+        <div class="field">
+          <label>Dimensions (length &times; width &times; height)</label>
+          <div class="dim-row">
+            <input type="number" step="any" id="f-length" name="length" placeholder="Length" />
+            <input type="number" step="any" id="f-width" name="width" placeholder="Width" />
+            <input type="number" step="any" id="f-height" name="height" placeholder="Height" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-notes">Notes (optional)</label>
+          <textarea id="f-notes" name="notes" placeholder="Units, condition, colour, anything useful..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn secondary" onclick="closeForm()">Cancel</button>
+          <button type="submit" class="btn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox">
+    <button class="lb-btn lb-close" onclick="closeLightbox()" title="Close">&times;</button>
+    <button class="lb-btn lb-prev" onclick="lightboxStep(-1)" title="Previous">&#8249;</button>
+    <img id="lightboxImg" src="" alt="Full size photo" />
+    <button class="lb-btn lb-next" onclick="lightboxStep(1)" title="Next">&#8250;</button>
+    <div class="lb-count" id="lightboxCount"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // -----------------------------------------------------------------------
+    // Tiny client-side state. The server (data.json) is the source of truth;
+    // this just tracks which view is on screen and transient form/lightbox state.
+    // -----------------------------------------------------------------------
+    const state = {
+      view: 'home',          // 'home' | 'room' | 'furniture'
+      roomId: null,
+      furnitureId: null,
+    };
+    let formContext = null;    // describes what the modal is editing/creating
+    let lightboxPhotos = [];   // array of filenames currently in the lightbox
+    let lightboxIndex = 0;
+
+    // ---- API helpers ------------------------------------------------------
+    async function api(path, options = {}) {
+      const res = await fetch(path, options);
+      if (!res.ok) {
+        let msg = 'Request failed.';
+        try { msg = (await res.json()).error || msg; } catch (_) {}
+        throw new Error(msg);
+      }
+      return res.status === 204 ? null : res.json();
+    }
+
+    function toast(message, isError = false) {
+      const el = document.getElementById('toast');
+      el.textContent = message;
+      el.className = 'toast show' + (isError ? ' error' : '');
+      setTimeout(() => { el.className = 'toast' + (isError ? ' error' : ''); }, 2600);
+    }
+
+    function esc(str) {
+      return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // Human-readable dimensions, e.g. "3 × 4 × 2.5". Shows "—" if none set.
+    function dimText(d) {
+      if (!d) return '—';
+      const parts = [d.length, d.width, d.height].map((v) => (v == null || v === '' ? '?' : v));
+      if (parts.every((p) => p === '?')) return '—';
+      return parts.join(' × ');
+    }
+
+    // ---- Navigation -------------------------------------------------------
+    function goHome() { state.view = 'home'; state.roomId = null; state.furnitureId = null; render(); }
+    function openRoom(roomId) { state.view = 'room'; state.roomId = roomId; state.furnitureId = null; render(); }
+    function openFurniture(furnitureId) { state.view = 'furniture'; state.furnitureId = furnitureId; render(); }
+
+    // ---- Render dispatcher ------------------------------------------------
+    async function render() {
+      const view = document.getElementById('view');
+      view.innerHTML = '<div class="loading">Loading…</div>';
+      try {
+        if (state.view === 'home') return renderHome(view);
+        if (state.view === 'room') return renderRoom(view);
+        if (state.view === 'furniture') return renderFurniture(view);
+      } catch (err) {
+        view.innerHTML = '<div class="empty"><p>' + esc(err.message) + '</p>' +
+          '<button class="btn" onclick="goHome()">Back to rooms</button></div>';
+      }
+    }
+
+    // ---- HOME: list of rooms ---------------------------------------------
+    async function renderHome(view) {
+      const rooms = await api('/api/rooms');
+      let html = '<div class="page-head"><div><h1>Your Rooms</h1>' +
+        '<div class="sub">' + rooms.length + ' room' + (rooms.length === 1 ? '' : 's') + ' tracked</div></div>' +
+        '<button class="btn" onclick="openRoomForm()">+ Add Room</button></div>';
+
+      if (rooms.length === 0) {
+        html += '<div class="empty"><p>No rooms yet. Add your first room to start tracking dimensions.</p>' +
+          '<button class="btn" onclick="openRoomForm()">+ Add Room</button></div>';
+      } else {
+        html += '<div class="grid">';
+        for (const r of rooms) {
+          const photoCount = (r.photos || []).length;
+          const furnCount = (r.furniture || []).length;
+          html += '<div class="card" onclick="openRoom(\'' + r.id + '\')">' +
+            '<h3>' + esc(r.name) + '</h3>' +
+            '<div class="dims">' + dimText(r.dimensions) + '</div>' +
+            '<div class="meta"><span>' + furnCount + ' item' + (furnCount === 1 ? '' : 's') + '</span>' +
+            '<span>' + photoCount + ' photo' + (photoCount === 1 ? '' : 's') + '</span></div>' +
+            thumbStrip(r.photos, '') + '</div>';
+        }
+        html += '</div>';
+      }
+      view.innerHTML = html;
+    }
+
+    function thumbStrip(photos, prefix) {
+      const list = photos || [];
+      if (list.length === 0) return '';
+      let html = '<div class="thumb-strip">';
+      list.slice(0, 3).forEach((p) => {
+        html += '<img src="/images/' + encodeURIComponent(p) + '" alt="" />';
+      });
+      if (list.length > 3) html += '<div class="more">+' + (list.length - 3) + '</div>';
+      return html + '</div>';
+    }
+
+    // ---- ROOM detail ------------------------------------------------------
+    async function renderRoom(view) {
+      const room = await api('/api/rooms/' + state.roomId);
+      const furniture = room.furniture || [];
+
+      let html = '<div class="crumbs"><a onclick="goHome()">Rooms</a>' +
+        '<span class="sep">/</span>' + esc(room.name) + '</div>';
+
+      html += '<div class="panel"><div class="page-head" style="margin-bottom:0">' +
+        '<div><h2>' + esc(room.name) + '</h2></div>' +
+        '<div class="btn-row">' +
+        '<button class="btn secondary small" onclick="openRoomForm(' + jsArg(room) + ')">Edit</button>' +
+        '<button class="btn danger small" onclick="deleteRoom()">Delete</button></div></div>' +
+        '<div class="dim-pills">' + dimPills(room.dimensions) + '</div>' +
+        (room.notes ? '<div class="notes">' + esc(room.notes) + '</div>' : '') +
+        '</div>';
+
+      // Photos section
+      html += photoSection('room', room.photos);
+
+      // Furniture section
+      html += '<div class="section-title"><h2>Furniture</h2>' +
+        '<button class="btn small" onclick="openFurnitureForm()">+ Add Furniture</button></div>';
+
+      if (furniture.length === 0) {
+        html += '<div class="empty"><p>No furniture in this room yet.</p>' +
+          '<button class="btn" onclick="openFurnitureForm()">+ Add Furniture</button></div>';
+      } else {
+        html += '<div class="grid">';
+        for (const f of furniture) {
+          const pc = (f.photos || []).length;
+          html += '<div class="card" onclick="openFurniture(\'' + f.id + '\')">' +
+            '<h3>' + esc(f.name) + '</h3>' +
+            '<div class="dims">' + dimText(f.dimensions) + '</div>' +
+            '<div class="meta"><span>' + pc + ' photo' + (pc === 1 ? '' : 's') + '</span></div>' +
+            thumbStrip(f.photos, '') + '</div>';
+        }
+        html += '</div>';
+      }
+      view.innerHTML = html;
+    }
+
+    // ---- FURNITURE detail -------------------------------------------------
+    async function renderFurniture(view) {
+      const room = await api('/api/rooms/' + state.roomId);
+      const item = (room.furniture || []).find((f) => f.id === state.furnitureId);
+      if (!item) throw new Error('Furniture not found.');
+
+      let html = '<div class="crumbs"><a onclick="goHome()">Rooms</a>' +
+        '<span class="sep">/</span><a onclick="openRoom(\'' + room.id + '\')">' + esc(room.name) + '</a>' +
+        '<span class="sep">/</span>' + esc(item.name) + '</div>';
+
+      html += '<div class="panel"><div class="page-head" style="margin-bottom:0">' +
+        '<div><h2>' + esc(item.name) + '</h2></div>' +
+        '<div class="btn-row">' +
+        '<button class="btn secondary small" onclick="openFurnitureForm(' + jsArg(item) + ')">Edit</button>' +
+        '<button class="btn danger small" onclick="deleteFurniture()">Delete</button></div></div>' +
+        '<div class="dim-pills">' + dimPills(item.dimensions) + '</div>' +
+        (item.notes ? '<div class="notes">' + esc(item.notes) + '</div>' : '') +
+        '</div>';
+
+      html += photoSection('furniture', item.photos);
+      view.innerHTML = html;
+    }
+
+    function dimPills(d) {
+      if (!d) return '<span class="pill">No dimensions</span>';
+      const labels = [['Length', d.length], ['Width', d.width], ['Height', d.height]];
+      const set = labels.filter(([, v]) => v != null && v !== '');
+      if (set.length === 0) return '<span class="pill">No dimensions</span>';
+      return set.map(([k, v]) => '<span class="pill">' + k + ': ' + esc(v) + '</span>').join('');
+    }
+
+    // Photo upload + thumbnail grid for the current room or furniture item.
+    function photoSection(kind, photos) {
+      const list = photos || [];
+      let html = '<div class="section-title"><h2>Photos</h2></div>';
+      html += '<div class="upload-row">' +
+        '<input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp" multiple />' +
+        '<button class="btn small" onclick="uploadPhotos(\'' + kind + '\')">Upload</button></div>';
+
+      if (list.length === 0) {
+        html += '<div class="empty"><p>No photos yet — upload JPG, PNG or WEBP images above.</p></div>';
+      } else {
+        html += '<div class="photo-grid">';
+        list.forEach((p, i) => {
+          const url = '/images/' + encodeURIComponent(p);
+          html += '<div class="photo-tile">' +
+            '<img src="' + url + '" alt="photo" onclick="openLightbox(' + i + ')" />' +
+            '<button class="del" title="Delete photo" onclick="deletePhoto(\'' + kind + '\',\'' + esc(p) + '\')">&times;</button>' +
+            '</div>';
+        });
+        html += '</div>';
+      }
+      // Stash the list so the lightbox can navigate it.
+      lightboxPhotos = list.slice();
+      return html;
+    }
+
+    // Encode an object as a safe inline JS argument for onclick handlers.
+    function jsArg(obj) {
+      return "JSON.parse(decodeURIComponent('" + encodeURIComponent(JSON.stringify(obj)) + "'))";
+    }
+
+    // ---- Form modal (shared by rooms and furniture) -----------------------
+    function openRoomForm(room) {
+      formContext = { type: 'room', editing: room || null };
+      fillForm(room, room ? 'Edit Room' : 'Add Room');
+    }
+    function openFurnitureForm(item) {
+      formContext = { type: 'furniture', editing: item || null };
+      fillForm(item, item ? 'Edit Furniture' : 'Add Furniture');
+    }
+    function fillForm(entity, title) {
+      document.getElementById('formTitle').textContent = title;
+      document.getElementById('formError').textContent = '';
+      const d = (entity && entity.dimensions) || {};
+      document.getElementById('f-name').value = entity ? entity.name : '';
+      document.getElementById('f-length').value = d.length != null ? d.length : '';
+      document.getElementById('f-width').value = d.width != null ? d.width : '';
+      document.getElementById('f-height').value = d.height != null ? d.height : '';
+      document.getElementById('f-notes').value = entity ? (entity.notes || '') : '';
+      document.getElementById('formOverlay').classList.add('open');
+      document.getElementById('f-name').focus();
+    }
+    function closeForm() {
+      document.getElementById('formOverlay').classList.remove('open');
+      formContext = null;
+    }
+
+    document.getElementById('entityForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById('formError');
+      const name = document.getElementById('f-name').value.trim();
+      if (!name) { errEl.textContent = 'Name is required.'; return; }
+
+      const payload = {
+        name,
+        length: document.getElementById('f-length').value,
+        width: document.getElementById('f-width').value,
+        height: document.getElementById('f-height').value,
+        notes: document.getElementById('f-notes').value,
+      };
+      const opts = {
+        method: formContext.editing ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      };
+
+      try {
+        if (formContext.type === 'room') {
+          if (formContext.editing) {
+            await api('/api/rooms/' + formContext.editing.id, opts);
+          } else {
+            const created = await api('/api/rooms', opts);
+            state.view = 'room'; state.roomId = created.id; state.furnitureId = null;
+          }
+        } else {
+          if (formContext.editing) {
+            await api('/api/rooms/' + state.roomId + '/furniture/' + formContext.editing.id, opts);
+          } else {
+            const created = await api('/api/rooms/' + state.roomId + '/furniture', opts);
+            state.view = 'furniture'; state.furnitureId = created.id;
+          }
+        }
+        closeForm();
+        toast('Saved.');
+        render();
+      } catch (err) {
+        errEl.textContent = err.message;
+      }
+    });
+
+    // ---- Delete actions ---------------------------------------------------
+    async function deleteRoom() {
+      if (!confirm('Delete this room and all its furniture and photos? This cannot be undone.')) return;
+      try {
+        await api('/api/rooms/' + state.roomId, { method: 'DELETE' });
+        toast('Room deleted.');
+        goHome();
+      } catch (err) { toast(err.message, true); }
+    }
+    async function deleteFurniture() {
+      if (!confirm('Delete this furniture item and its photos? This cannot be undone.')) return;
+      const roomId = state.roomId;
+      try {
+        await api('/api/rooms/' + roomId + '/furniture/' + state.furnitureId, { method: 'DELETE' });
+        toast('Furniture deleted.');
+        openRoom(roomId);
+      } catch (err) { toast(err.message, true); }
+    }
+
+    // ---- Photo actions ----------------------------------------------------
+    async function uploadPhotos(kind) {
+      const input = document.getElementById('photoInput');
+      if (!input.files || input.files.length === 0) { toast('Choose one or more images first.', true); return; }
+      const fd = new FormData();
+      for (const file of input.files) fd.append('photos', file);
+      const url = kind === 'room'
+        ? '/api/rooms/' + state.roomId + '/photos'
+        : '/api/rooms/' + state.roomId + '/furniture/' + state.furnitureId + '/photos';
+      try {
+        await api(url, { method: 'POST', body: fd });
+        toast('Photo(s) uploaded.');
+        render();
+      } catch (err) { toast(err.message, true); }
+    }
+
+    async function deletePhoto(kind, filename) {
+      if (!confirm('Delete this photo?')) return;
+      const url = kind === 'room'
+        ? '/api/rooms/' + state.roomId + '/photos/' + encodeURIComponent(filename)
+        : '/api/rooms/' + state.roomId + '/furniture/' + state.furnitureId + '/photos/' + encodeURIComponent(filename);
+      try {
+        await api(url, { method: 'DELETE' });
+        toast('Photo deleted.');
+        render();
+      } catch (err) { toast(err.message, true); }
+    }
+
+    // ---- Lightbox ---------------------------------------------------------
+    function openLightbox(index) {
+      lightboxIndex = index;
+      showLightbox();
+      document.getElementById('lightbox').classList.add('open');
+    }
+    function showLightbox() {
+      if (lightboxPhotos.length === 0) return;
+      const name = lightboxPhotos[lightboxIndex];
+      document.getElementById('lightboxImg').src = '/images/' + encodeURIComponent(name);
+      document.getElementById('lightboxCount').textContent =
+        (lightboxIndex + 1) + ' / ' + lightboxPhotos.length;
+      const multi = lightboxPhotos.length > 1;
+      document.querySelector('.lb-prev').style.display = multi ? 'flex' : 'none';
+      document.querySelector('.lb-next').style.display = multi ? 'flex' : 'none';
+    }
+    function lightboxStep(dir) {
+      const n = lightboxPhotos.length;
+      lightboxIndex = (lightboxIndex + dir + n) % n;
+      showLightbox();
+    }
+    function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+
+    // Keyboard nav for lightbox; Escape closes modals.
+    document.addEventListener('keydown', (e) => {
+      if (document.getElementById('lightbox').classList.contains('open')) {
+        if (e.key === 'ArrowLeft') lightboxStep(-1);
+        else if (e.key === 'ArrowRight') lightboxStep(1);
+        else if (e.key === 'Escape') closeLightbox();
+      } else if (e.key === 'Escape' && document.getElementById('formOverlay').classList.contains('open')) {
+        closeForm();
+      }
+    });
+    // Click backdrop to close.
+    document.getElementById('formOverlay').addEventListener('click', (e) => {
+      if (e.target.id === 'formOverlay') closeForm();
+    });
+    document.getElementById('lightbox').addEventListener('click', (e) => {
+      if (e.target.id === 'lightbox') closeLightbox();
+    });
+
+    // Boot.
+    render();
+  </script>
+</body>
+</html>

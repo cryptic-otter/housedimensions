@@ -1,0 +1,22 @@
+{
+  "name": "housedimensions",
+  "version": "1.0.0",
+  "description": "House Dimensions Hub — a lightweight, locally-run app for tracking room dimensions, furniture measurements, and photos of your home.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "rooms",
+    "furniture",
+    "dimensions",
+    "home",
+    "express"
+  ],
+  "author": "cryptic-otter",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^2.0.0"
+  }
+}
