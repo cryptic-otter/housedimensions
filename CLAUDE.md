@@ -66,6 +66,8 @@ The front end is a client-side SPA with four views (`home`, `room`, `measurement
 | `uploadPhotos(kind)` | Builds a `FormData`, POSTs to the correct photo endpoint for the current view, shows a spinner while in flight, then re-renders |
 | `openRoomForm(room?)` / `openMeasurementForm(item?)` / `openFurnitureForm(item?)` | Opens the shared modal form; pre-fills if editing |
 | `jsArg(obj)` | Encodes an object as a URL-safe inline `onclick` argument (avoids quote escaping issues) |
+| `csvEscape(value)` | Escapes one CSV field: wraps in double-quotes if it contains a comma, double-quote, or newline, and doubles internal double-quotes. Returns `''` for null/undefined |
+| `downloadCsv(filename, csvString)` | Client-side CSV download: builds a `text/csv` Blob, clicks a temporary `<a download>`, then revokes the object URL. Used by the room/measurements/furniture Export CSV buttons on the room detail page; reuses the room object stashed in `currentRoom` (no extra API call) |
 
 ## Data model (`data.json`)
 

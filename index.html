@@ -450,6 +450,7 @@
     // ---- ROOM detail ------------------------------------------------------
     async function renderRoom(view) {
       const room = await api('/api/rooms/' + state.roomId);
+      currentRoom = room; // stash for CSV exports (no extra API call needed)
       const furniture = room.furniture || [];
 
       let html = '<div class="crumbs"><a onclick="goHome()">Rooms</a>' +
@@ -458,6 +459,7 @@
       html += '<div class="panel"><div class="page-head" style="margin-bottom:0">' +
         '<div><h2>' + esc(room.name) + '</h2></div>' +
         '<div class="btn-row">' +
+        '<button class="btn secondary small" onclick="exportRoomCsv()">Export CSV</button>' +
         '<button class="btn secondary small" onclick="openRoomForm(' + jsArg(room) + ')">Edit</button>' +
         '<button class="btn danger small" onclick="deleteRoom()">Delete</button></div></div>' +
         '<div class="dim-pills">' + dimPills(room.dimensions) + '</div>' +
@@ -470,7 +472,9 @@
       // Measurements section (sits between the room overview and furniture)
       const measurements = room.measurements || [];
       html += '<div class="section-title"><h2>Measurements</h2>' +
-        '<button class="btn small" onclick="openMeasurementForm()">+ Add Measurement</button></div>';
+        '<div class="btn-row">' +
+        '<button class="btn secondary small" onclick="exportMeasurementsCsv()">Export CSV</button>' +
+        '<button class="btn small" onclick="openMeasurementForm()">+ Add Measurement</button></div></div>';
 
       if (measurements.length === 0) {
         html += '<div class="empty"><p>No measurements in this room yet.</p>' +
@@ -481,7 +485,9 @@
 
       // Furniture section
       html += '<div class="section-title"><h2>Furniture</h2>' +
-        '<button class="btn small" onclick="openFurnitureForm()">+ Add Furniture</button></div>';
+        '<div class="btn-row">' +
+        '<button class="btn secondary small" onclick="exportFurnitureCsv()">Export CSV</button>' +
+        '<button class="btn small" onclick="openFurnitureForm()">+ Add Furniture</button></div></div>';
 
       if (furniture.length === 0) {
         html += '<div class="empty"><p>No furniture in this room yet.</p>' +
@@ -577,6 +583,86 @@
     // Encode an object as a safe inline JS argument for onclick handlers.
     function jsArg(obj) {
       return "JSON.parse(decodeURIComponent('" + encodeURIComponent(JSON.stringify(obj)) + "'))";
+    }
+
+    // ---- CSV export -------------------------------------------------------
+    // Escapes a single CSV field: wraps in double-quotes if it contains a
+    // comma, double-quote, or newline, and doubles any internal double-quotes.
+    function csvEscape(value) {
+      const s = value == null ? '' : String(value);
+      if (/[",\n]/.test(s)) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    }
+
+    // Triggers a client-side download of csvString as filename.
+    function downloadCsv(filename, csvString) {
+      const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // A single dimension value for CSV: empty string if null/blank (never "—").
+    function csvDim(d, key) {
+      const v = d ? d[key] : null;
+      return (v != null && v !== '') ? v : '';
+    }
+
+    // The current room object, stashed by renderRoom so the export buttons can
+    // reuse it without making an extra API call.
+    let currentRoom = null;
+
+    // Builds one item row: Name,L,W,H,Notes (no Section column).
+    function itemCsvRow(it) {
+      const d = it.dimensions;
+      return [it.name, csvDim(d, 'length'), csvDim(d, 'width'), csvDim(d, 'height'), it.notes]
+        .map(csvEscape).join(',');
+    }
+
+    // HD-32: full room export — Room, Measurement and Furniture sections,
+    // each with its own header row, separated by blank lines.
+    function exportRoomCsv() {
+      const room = currentRoom;
+      if (!room) return;
+      const header = 'Section,Name,L,W,H,Notes';
+      const d = room.dimensions;
+      const roomRow = ['Room', room.name, csvDim(d, 'length'), csvDim(d, 'width'), csvDim(d, 'height'), room.notes]
+        .map(csvEscape).join(',');
+      const measRows = (room.measurements || []).map((m) => 'Measurement,' + itemCsvRow(m));
+      const furnRows = (room.furniture || []).map((f) => 'Furniture,' + itemCsvRow(f));
+
+      const sections = [
+        header + '\n' + roomRow,
+        header + '\n' + measRows.join('\n'),
+        header + '\n' + furnRows.join('\n'),
+      ];
+      const csv = sections.join('\n\n') + '\n';
+      downloadCsv(room.name + '.csv', csv);
+    }
+
+    // HD-33: measurements-only export — Name,L,W,H,Notes.
+    function exportMeasurementsCsv() {
+      const room = currentRoom;
+      if (!room) return;
+      const rows = ['Name,L,W,H,Notes'];
+      (room.measurements || []).forEach((m) => rows.push(itemCsvRow(m)));
+      downloadCsv(room.name + '-measurements.csv', rows.join('\n') + '\n');
+    }
+
+    // HD-34: furniture-only export — Name,L,W,H,Notes.
+    function exportFurnitureCsv() {
+      const room = currentRoom;
+      if (!room) return;
+      const rows = ['Name,L,W,H,Notes'];
+      (room.furniture || []).forEach((f) => rows.push(itemCsvRow(f)));
+      downloadCsv(room.name + '-furniture.csv', rows.join('\n') + '\n');
     }
 
     // ---- Form modal (shared by rooms and furniture) -----------------------
