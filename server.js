@@ -78,11 +78,64 @@ function deleteImageFiles(filenames) {
 // ---------------------------------------------------------------------------
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
+// Sanitise a single name segment for safe, human-readable filenames:
+// lowercase, spaces -> underscores, strip anything outside [a-z0-9_-],
+// collapse repeated underscores, trim leading/trailing underscores.
+function sanitiseSegment(name) {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_-]/g, '')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+// Build a human-readable filename based on the upload context. Names are
+// resolved from data.json (read synchronously, as everywhere else in this
+// file). Route params are resolved before middleware runs, so req.params is
+// fully populated here. Falls back to the opaque pattern if a lookup fails so
+// uploads never hard-fail.
+//
+//   room-level:    [roomname]_[timestamp][ext]
+//   measurement:   [roomname]_measurement_[measurementname]_[timestamp][ext]
+//   furniture:     [roomname]_furniture_[furniturename]_[timestamp][ext]
+function buildImageFilename(req, ext) {
+  const fallback = `${Date.now()}-${newId()}${ext}`;
+  try {
+    const data = loadData();
+    const room = findRoom(data, req.params.roomId);
+    if (!room) return fallback;
+    const roomSeg = sanitiseSegment(room.name);
+    if (!roomSeg) return fallback;
+
+    let parts;
+    if (req.params.furnitureId) {
+      const item = findFurniture(room, req.params.furnitureId);
+      if (!item) return fallback;
+      const itemSeg = sanitiseSegment(item.name);
+      if (!itemSeg) return fallback;
+      parts = [roomSeg, 'furniture', itemSeg];
+    } else if (req.params.measurementId) {
+      const item = findMeasurement(room, req.params.measurementId);
+      if (!item) return fallback;
+      const itemSeg = sanitiseSegment(item.name);
+      if (!itemSeg) return fallback;
+      parts = [roomSeg, 'measurement', itemSeg];
+    } else {
+      parts = [roomSeg];
+    }
+
+    return `${parts.join('_')}_${Date.now()}-${newId().slice(0, 6)}${ext}`;
+  } catch (err) {
+    return fallback;
+  }
+}
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, IMAGES_DIR),
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
-    cb(null, `${Date.now()}-${newId()}${ext}`);
+    cb(null, buildImageFilename(req, ext));
   },
 });
 

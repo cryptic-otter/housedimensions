@@ -43,7 +43,13 @@ The app has exactly two source files:
 - `loadData()` / `saveData()` — synchronous JSON read/write. Every mutation calls both.
 - `parseDimensions(body)` — normalises `length`, `width`, `height` from a request body into numbers or `null`.
 - `deleteImageFiles(filenames)` — async unlinks image files from disk; silently ignores missing files. Called on every delete (room, furniture, or photo).
-- Multer is configured to accept only `image/jpeg`, `image/png`, `image/webp`. Files land in `data/images/` with a `<timestamp>-<randomHex><ext>` filename.
+- Multer is configured to accept only `image/jpeg`, `image/png`, `image/webp`. Files land in `data/images/` with human-readable names derived from the upload context (see `buildImageFilename`):
+  - Room photo: `[roomname]_[timestamp]-[hex][ext]`
+  - Measurement photo: `[roomname]_measurement_[measurementname]_[timestamp]-[hex][ext]`
+  - Furniture photo: `[roomname]_furniture_[furniturename]_[timestamp]-[hex][ext]`
+  - `buildImageFilename(req, ext)` reads `data.json` synchronously inside multer's `filename` callback (route params are resolved before middleware runs) and resolves names via `findRoom`/`findFurniture`/`findMeasurement`. If `req.params.furnitureId` is set it's a furniture photo; else if `req.params.measurementId` is set it's a measurement photo; otherwise a room photo.
+  - `sanitiseSegment(name)` cleans each name segment: lowercase, spaces → `_`, strip anything outside `[a-z0-9_-]`, collapse repeated `_`, trim leading/trailing `_`.
+  - A short random hex suffix is appended after the timestamp so same-millisecond uploads never collide. If any lookup fails, it falls back to the legacy `<timestamp>-<randomHex><ext>` pattern so uploads never hard-fail. Old files saved under the legacy pattern keep working — no migration.
 - Port defaults to `3000`; override with `PORT` env var.
 
 ## index.html internals
