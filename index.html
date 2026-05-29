@@ -304,12 +304,15 @@
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    // Human-readable dimensions, e.g. "3 × 4 × 2.5". Shows "—" if none set.
+    // Human-readable dimensions, e.g. "L: 3 × W: 4 × H: 2.5". Shows "—" if none set.
     function dimText(d) {
       if (!d) return '—';
-      const parts = [d.length, d.width, d.height].map((v) => (v == null || v === '' ? '?' : v));
-      if (parts.every((p) => p === '?')) return '—';
-      return parts.join(' × ');
+      const labels = ['L', 'W', 'H'];
+      const keys = ['length', 'width', 'height'];
+      const parts = keys
+        .map((k, i) => (d[k] != null && d[k] !== '' ? `${labels[i]}: ${d[k]}` : null))
+        .filter(Boolean);
+      return parts.length ? parts.join(' × ') : '—';
     }
 
     // ---- Navigation -------------------------------------------------------
