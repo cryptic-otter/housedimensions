@@ -114,6 +114,38 @@
     .card .thumb-strip .more { width: 48px; height: 48px; border-radius: 8px; background: #eef1f8; color: var(--ink-soft);
       display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
 
+    /* Item table (Measurements & Furniture on room detail) */
+    .item-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      font-size: 14px;
+    }
+    .item-table th, .item-table td {
+      text-align: left;
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .item-table thead th {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--ink-soft);
+      background: #f7f9fd;
+    }
+    .item-table tbody tr:last-child td { border-bottom: none; }
+    .item-table tbody tr { cursor: pointer; transition: background 0.12s ease; }
+    .item-table tbody tr:hover { background: rgba(79, 109, 245, 0.07); }
+    .item-table td.num { width: 56px; color: var(--ink-soft); text-align: right; font-variant-numeric: tabular-nums; }
+    .item-table th.num { text-align: right; }
+    .item-table td.name { font-weight: 600; }
+    .item-table td.notes { color: var(--ink-soft); }
+
     /* Detail panel */
     .panel {
       background: var(--surface);
@@ -325,6 +357,37 @@
       return parts.length ? parts.join(' × ') : '—';
     }
 
+    // Single dimension value for a table cell; "—" if null/blank.
+    function dimCell(d, key) {
+      const v = d ? d[key] : null;
+      return (v != null && v !== '') ? v : '—';
+    }
+
+    // Truncate notes at 40 chars with an ellipsis.
+    function truncNotes(notes) {
+      const n = (notes || '').trim();
+      if (!n) return '';
+      return n.length > 40 ? n.slice(0, 40) + '…' : n;
+    }
+
+    // Renders a clickable item table (used for measurements & furniture).
+    function itemTable(items, openFn) {
+      let html = '<table class="item-table"><thead><tr>' +
+        '<th>Name</th><th class="num">L</th><th class="num">W</th><th class="num">H</th><th>Notes</th>' +
+        '</tr></thead><tbody>';
+      for (const it of items) {
+        const d = it.dimensions;
+        html += '<tr onclick="' + openFn + '(\'' + it.id + '\')">' +
+          '<td class="name">' + esc(it.name) + '</td>' +
+          '<td class="num">' + esc(String(dimCell(d, 'length'))) + '</td>' +
+          '<td class="num">' + esc(String(dimCell(d, 'width'))) + '</td>' +
+          '<td class="num">' + esc(String(dimCell(d, 'height'))) + '</td>' +
+          '<td class="notes">' + esc(truncNotes(it.notes)) + '</td>' +
+          '</tr>';
+      }
+      return html + '</tbody></table>';
+    }
+
     // ---- Navigation -------------------------------------------------------
     function goHome() { state.view = 'home'; state.roomId = null; state.measurementId = null; state.furnitureId = null; render(); }
     function openRoom(roomId) { state.view = 'room'; state.roomId = roomId; state.measurementId = null; state.furnitureId = null; render(); }
@@ -413,16 +476,7 @@
         html += '<div class="empty"><p>No measurements in this room yet.</p>' +
           '<button class="btn" onclick="openMeasurementForm()">+ Add Measurement</button></div>';
       } else {
-        html += '<div class="grid">';
-        for (const m of measurements) {
-          const mpc = (m.photos || []).length;
-          html += '<div class="card" onclick="openMeasurement(\'' + m.id + '\')">' +
-            '<h3>' + esc(m.name) + '</h3>' +
-            '<div class="dims">' + dimText(m.dimensions) + '</div>' +
-            '<div class="meta"><span>' + mpc + ' photo' + (mpc === 1 ? '' : 's') + '</span></div>' +
-            thumbStrip(m.photos, '') + '</div>';
-        }
-        html += '</div>';
+        html += itemTable(measurements, 'openMeasurement');
       }
 
       // Furniture section
@@ -433,16 +487,7 @@
         html += '<div class="empty"><p>No furniture in this room yet.</p>' +
           '<button class="btn" onclick="openFurnitureForm()">+ Add Furniture</button></div>';
       } else {
-        html += '<div class="grid">';
-        for (const f of furniture) {
-          const pc = (f.photos || []).length;
-          html += '<div class="card" onclick="openFurniture(\'' + f.id + '\')">' +
-            '<h3>' + esc(f.name) + '</h3>' +
-            '<div class="dims">' + dimText(f.dimensions) + '</div>' +
-            '<div class="meta"><span>' + pc + ' photo' + (pc === 1 ? '' : 's') + '</span></div>' +
-            thumbStrip(f.photos, '') + '</div>';
-        }
-        html += '</div>';
+        html += itemTable(furniture, 'openFurniture');
       }
       view.innerHTML = html;
     }

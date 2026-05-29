@@ -56,7 +56,8 @@ The front end is a client-side SPA with four views (`home`, `room`, `measurement
 |---|---|
 | `render()` | Dispatches to `renderHome`, `renderRoom`, `renderMeasurement`, or `renderFurniture` based on `state.view` |
 | `renderHome(view)` | Fetches `/api/rooms`, renders the room card grid |
-| `renderRoom(view)` | Fetches `/api/rooms/:roomId`, renders room detail + measurements list + furniture list |
+| `renderRoom(view)` | Fetches `/api/rooms/:roomId`, renders room detail; the measurements and furniture sections render as clickable tables (`itemTable`), not card grids |
+| `itemTable(items, openFn)` | Builds the `Name \| L \| W \| H \| Notes` table for the room detail. Each `<tr>` calls `openFn(id)`; blank dims show `—` (`dimCell`), notes truncate at 40 chars (`truncNotes`). Empty states still render the existing `.empty` block |
 | `renderMeasurement(view)` | Fetches the parent room, finds the measurement by `state.measurementId`, renders detail (sits between room and furniture) |
 | `renderFurniture(view)` | Fetches the parent room, finds the furniture item by `state.furnitureId`, renders detail |
 | `dimText(d)` | Formats a dimensions object as `L: 80 × W: 12 × H: 29`; skips blank values; used on cards |
