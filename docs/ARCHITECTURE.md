@@ -9,7 +9,7 @@ A single-process local web app. There is no cloud component, no database, and no
 │ Browser (http://localhost:3000)                             │
 │                                                              │
 │   index.html  ── vanilla JS SPA                              │
-│     • renders Home / Room / Furniture views                  │
+│     • renders Home / Room / Measurement / Furniture views    │
 │     • fetch() calls to /api/*                                │
 │     • lightbox + modal forms, all client-side                │
 └───────────────┬──────────────────────────────────────────────┘
@@ -35,13 +35,13 @@ A single-process local web app. There is no cloud component, no database, and no
 
 ### Front end (`index.html`)
 - One file: HTML structure, embedded CSS, embedded JS.
-- A minimal client-side router with three views: `home`, `room`, `furniture`. State is just `{ view, roomId, furnitureId }`.
+- A minimal client-side router with four views: `home`, `room`, `measurement`, `furniture`. State is just `{ view, roomId, measurementId, furnitureId }`. Measurements are a drill-down level within a room, sitting between the room overview and furniture.
 - The server is the single source of truth; the client re-fetches and re-renders after every mutation rather than holding a long-lived cache.
 - UI: card/grid layout, modal form (shared between room and furniture create/edit), thumbnail photo grid, and a keyboard-navigable lightbox.
 
 ### Server (`server.js`)
 - **Static serving:** the project root (for `index.html`) and `data/images/` (mounted at `/images`).
-- **REST API:** rooms, furniture, and photos (see `README.md` for the full route table).
+- **REST API:** rooms, measurements, furniture, and photos (see `README.md` for the full route table).
 - **Uploads:** `multer` disk storage writes to `data/images/` with unique, collision-proof filenames (`<timestamp>-<random>.<ext>`). Accepts only `image/jpeg`, `image/png`, `image/webp`.
 - **Persistence:** `loadData()` / `saveData()` read and write `data/data.json` on every mutation. The whole document is rewritten each time (simple and safe for a single-user local app).
 - **First-run setup:** `ensureStorage()` creates `data/`, `data/images/`, and an empty `data.json` if they do not exist.

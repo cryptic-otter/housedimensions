@@ -114,6 +114,9 @@ function findRoom(data, roomId) {
 function findFurniture(room, furnitureId) {
   return (room.furniture || []).find((f) => f.id === furnitureId);
 }
+function findMeasurement(room, measurementId) {
+  return (room.measurements || []).find((m) => m.id === measurementId);
+}
 
 // Normalise dimension input into { length, width, height } numbers (or null).
 function parseDimensions(body) {
@@ -189,9 +192,11 @@ app.delete('/api/rooms/:roomId', (req, res) => {
 
   const [room] = data.rooms.splice(idx, 1);
 
-  // Collect every image attached to the room and its furniture, then remove them.
+  // Collect every image attached to the room, its furniture, and its
+  // measurements, then remove them.
   const allPhotos = [...(room.photos || [])];
   (room.furniture || []).forEach((f) => allPhotos.push(...(f.photos || [])));
+  (room.measurements || []).forEach((m) => allPhotos.push(...(m.photos || [])));
   deleteImageFiles(allPhotos);
 
   saveData(data);
@@ -258,6 +263,65 @@ app.delete('/api/rooms/:roomId/furniture/:furnitureId', (req, res) => {
 });
 
 // ===========================================================================
+// MEASUREMENT ENDPOINTS
+// ===========================================================================
+
+// Create a measurement within a room
+app.post('/api/rooms/:roomId/measurements', (req, res) => {
+  const name = (req.body.name || '').trim();
+  if (!name) return res.status(400).json({ error: 'Measurement name is required.' });
+
+  const data = loadData();
+  const room = findRoom(data, req.params.roomId);
+  if (!room) return res.status(404).json({ error: 'Room not found.' });
+
+  if (!Array.isArray(room.measurements)) room.measurements = [];
+  const item = {
+    id: newId(),
+    name,
+    dimensions: parseDimensions(req.body),
+    notes: (req.body.notes || '').trim(),
+    photos: [],
+  };
+  room.measurements.push(item);
+  saveData(data);
+  res.status(201).json(item);
+});
+
+// Update a measurement
+app.put('/api/rooms/:roomId/measurements/:measurementId', (req, res) => {
+  const name = (req.body.name || '').trim();
+  if (!name) return res.status(400).json({ error: 'Measurement name is required.' });
+
+  const data = loadData();
+  const room = findRoom(data, req.params.roomId);
+  if (!room) return res.status(404).json({ error: 'Room not found.' });
+  const item = findMeasurement(room, req.params.measurementId);
+  if (!item) return res.status(404).json({ error: 'Measurement not found.' });
+
+  item.name = name;
+  item.dimensions = parseDimensions(req.body);
+  item.notes = (req.body.notes || '').trim();
+  saveData(data);
+  res.json(item);
+});
+
+// Delete a measurement (and its photos)
+app.delete('/api/rooms/:roomId/measurements/:measurementId', (req, res) => {
+  const data = loadData();
+  const room = findRoom(data, req.params.roomId);
+  if (!room) return res.status(404).json({ error: 'Room not found.' });
+
+  const idx = (room.measurements || []).findIndex((m) => m.id === req.params.measurementId);
+  if (idx === -1) return res.status(404).json({ error: 'Measurement not found.' });
+
+  const [item] = room.measurements.splice(idx, 1);
+  deleteImageFiles(item.photos);
+  saveData(data);
+  res.json({ ok: true });
+});
+
+// ===========================================================================
 // PHOTO ENDPOINTS
 // ===========================================================================
 
@@ -292,6 +356,22 @@ app.post('/api/rooms/:roomId/furniture/:furnitureId/photos', upload.array('photo
   res.status(201).json({ photos: item.photos, added });
 });
 
+// Upload one or more photos to a measurement
+app.post('/api/rooms/:roomId/measurements/:measurementId/photos', upload.array('photos'), (req, res) => {
+  const data = loadData();
+  const room = findRoom(data, req.params.roomId);
+  const item = room && findMeasurement(room, req.params.measurementId);
+  if (!item) {
+    deleteImageFiles((req.files || []).map((f) => f.filename));
+    return res.status(404).json({ error: 'Measurement not found.' });
+  }
+  if (!Array.isArray(item.photos)) item.photos = [];
+  const added = (req.files || []).map((f) => f.filename);
+  item.photos.push(...added);
+  saveData(data);
+  res.status(201).json({ photos: item.photos, added });
+});
+
 // Delete a photo from a room
 app.delete('/api/rooms/:roomId/photos/:filename', (req, res) => {
   const data = loadData();
@@ -311,6 +391,20 @@ app.delete('/api/rooms/:roomId/furniture/:furnitureId/photos/:filename', (req, r
   const room = findRoom(data, req.params.roomId);
   const item = room && findFurniture(room, req.params.furnitureId);
   if (!item) return res.status(404).json({ error: 'Furniture not found.' });
+
+  const filename = req.params.filename;
+  item.photos = (item.photos || []).filter((p) => p !== filename);
+  deleteImageFiles([filename]);
+  saveData(data);
+  res.json({ ok: true, photos: item.photos });
+});
+
+// Delete a photo from a measurement
+app.delete('/api/rooms/:roomId/measurements/:measurementId/photos/:filename', (req, res) => {
+  const data = loadData();
+  const room = findRoom(data, req.params.roomId);
+  const item = room && findMeasurement(room, req.params.measurementId);
+  if (!item) return res.status(404).json({ error: 'Measurement not found.' });
 
   const filename = req.params.filename;
   item.photos = (item.photos || []).filter((p) => p !== filename);

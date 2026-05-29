@@ -49,20 +49,21 @@ The app has exactly two source files:
 
 ## index.html internals
 
-The front end is a client-side SPA with three views (`home`, `room`, `furniture`) controlled by a tiny `state` object. All rendering is done by building HTML strings and setting `innerHTML`.
+The front end is a client-side SPA with four views (`home`, `room`, `measurement`, `furniture`) controlled by a tiny `state` object: `{ view, roomId, measurementId, furnitureId }`. All rendering is done by building HTML strings and setting `innerHTML`.
 
 **Key functions:**
 
 | Function | What it does |
 |---|---|
-| `render()` | Dispatches to `renderHome`, `renderRoom`, or `renderFurniture` based on `state.view` |
+| `render()` | Dispatches to `renderHome`, `renderRoom`, `renderMeasurement`, or `renderFurniture` based on `state.view` |
 | `renderHome(view)` | Fetches `/api/rooms`, renders the room card grid |
-| `renderRoom(view)` | Fetches `/api/rooms/:roomId`, renders room detail + furniture list |
+| `renderRoom(view)` | Fetches `/api/rooms/:roomId`, renders room detail + measurements list + furniture list |
+| `renderMeasurement(view)` | Fetches the parent room, finds the measurement by `state.measurementId`, renders detail (sits between room and furniture) |
 | `renderFurniture(view)` | Fetches the parent room, finds the furniture item by `state.furnitureId`, renders detail |
 | `dimText(d)` | Formats a dimensions object as `L: 80 × W: 12 × H: 29`; skips blank values; used on cards |
 | `dimPills(d)` | Formats dimensions as labelled pill badges (`Length: 80` etc.); used on detail pages |
 | `photoSection(kind, photos)` | Renders the upload control + thumbnail grid for rooms or furniture |
-| `openRoomForm(room?)` / `openFurnitureForm(item?)` | Opens the shared modal form; pre-fills if editing |
+| `openRoomForm(room?)` / `openMeasurementForm(item?)` / `openFurnitureForm(item?)` | Opens the shared modal form; pre-fills if editing |
 | `jsArg(obj)` | Encodes an object as a URL-safe inline `onclick` argument (avoids quote escaping issues) |
 
 ## Data model (`data.json`)
@@ -76,6 +77,15 @@ The front end is a client-side SPA with three views (`home`, `room`, `furniture`
       "dimensions": { "length": 5, "width": 4, "height": 2.5 },
       "notes": "",
       "photos": ["<filename>.jpg"],
+      "measurements": [
+        {
+          "id": "<hex>",
+          "name": "Front Doorway",
+          "dimensions": { "length": 2.1, "width": 0.9, "height": null },
+          "notes": "",
+          "photos": []
+        }
+      ],
       "furniture": [
         {
           "id": "<hex>",
@@ -91,6 +101,18 @@ The front end is a client-side SPA with three views (`home`, `room`, `furniture`
 ```
 
 Dimension values are numbers or `null` (never strings). Any dimension key can be `null` if not entered.
+
+`measurements` is an embedded array on each room (same shape as `furniture`), capturing named architectural elements. It sits between the room overview and furniture in the UI. Deleting a room cascades photo cleanup over room, measurement, and furniture photos.
+
+**Measurement API endpoints** (mirror the furniture routes, server-side helper `findMeasurement`):
+
+```
+POST   /api/rooms/:roomId/measurements
+PUT    /api/rooms/:roomId/measurements/:measurementId
+DELETE /api/rooms/:roomId/measurements/:measurementId
+POST   /api/rooms/:roomId/measurements/:measurementId/photos
+DELETE /api/rooms/:roomId/measurements/:measurementId/photos/:filename
+```
 
 ## Jira reference
 

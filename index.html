@@ -272,8 +272,9 @@
     // this just tracks which view is on screen and transient form/lightbox state.
     // -----------------------------------------------------------------------
     const state = {
-      view: 'home',          // 'home' | 'room' | 'furniture'
+      view: 'home',          // 'home' | 'room' | 'measurement' | 'furniture'
       roomId: null,
+      measurementId: null,
       furnitureId: null,
     };
     let formContext = null;    // describes what the modal is editing/creating
@@ -316,9 +317,10 @@
     }
 
     // ---- Navigation -------------------------------------------------------
-    function goHome() { state.view = 'home'; state.roomId = null; state.furnitureId = null; render(); }
-    function openRoom(roomId) { state.view = 'room'; state.roomId = roomId; state.furnitureId = null; render(); }
-    function openFurniture(furnitureId) { state.view = 'furniture'; state.furnitureId = furnitureId; render(); }
+    function goHome() { state.view = 'home'; state.roomId = null; state.measurementId = null; state.furnitureId = null; render(); }
+    function openRoom(roomId) { state.view = 'room'; state.roomId = roomId; state.measurementId = null; state.furnitureId = null; render(); }
+    function openMeasurement(measurementId) { state.view = 'measurement'; state.measurementId = measurementId; state.furnitureId = null; render(); }
+    function openFurniture(furnitureId) { state.view = 'furniture'; state.furnitureId = furnitureId; state.measurementId = null; render(); }
 
     // ---- Render dispatcher ------------------------------------------------
     async function render() {
@@ -327,6 +329,7 @@
       try {
         if (state.view === 'home') return renderHome(view);
         if (state.view === 'room') return renderRoom(view);
+        if (state.view === 'measurement') return renderMeasurement(view);
         if (state.view === 'furniture') return renderFurniture(view);
       } catch (err) {
         view.innerHTML = '<div class="empty"><p>' + esc(err.message) + '</p>' +
@@ -392,6 +395,27 @@
       // Photos section
       html += photoSection('room', room.photos);
 
+      // Measurements section (sits between the room overview and furniture)
+      const measurements = room.measurements || [];
+      html += '<div class="section-title"><h2>Measurements</h2>' +
+        '<button class="btn small" onclick="openMeasurementForm()">+ Add Measurement</button></div>';
+
+      if (measurements.length === 0) {
+        html += '<div class="empty"><p>No measurements in this room yet.</p>' +
+          '<button class="btn" onclick="openMeasurementForm()">+ Add Measurement</button></div>';
+      } else {
+        html += '<div class="grid">';
+        for (const m of measurements) {
+          const mpc = (m.photos || []).length;
+          html += '<div class="card" onclick="openMeasurement(\'' + m.id + '\')">' +
+            '<h3>' + esc(m.name) + '</h3>' +
+            '<div class="dims">' + dimText(m.dimensions) + '</div>' +
+            '<div class="meta"><span>' + mpc + ' photo' + (mpc === 1 ? '' : 's') + '</span></div>' +
+            thumbStrip(m.photos, '') + '</div>';
+        }
+        html += '</div>';
+      }
+
       // Furniture section
       html += '<div class="section-title"><h2>Furniture</h2>' +
         '<button class="btn small" onclick="openFurnitureForm()">+ Add Furniture</button></div>';
@@ -411,6 +435,29 @@
         }
         html += '</div>';
       }
+      view.innerHTML = html;
+    }
+
+    // ---- MEASUREMENT detail -----------------------------------------------
+    async function renderMeasurement(view) {
+      const room = await api('/api/rooms/' + state.roomId);
+      const item = (room.measurements || []).find((m) => m.id === state.measurementId);
+      if (!item) throw new Error('Measurement not found.');
+
+      let html = '<div class="crumbs"><a onclick="goHome()">Rooms</a>' +
+        '<span class="sep">/</span><a onclick="openRoom(\'' + room.id + '\')">' + esc(room.name) + '</a>' +
+        '<span class="sep">/</span>' + esc(item.name) + '</div>';
+
+      html += '<div class="panel"><div class="page-head" style="margin-bottom:0">' +
+        '<div><h2>' + esc(item.name) + '</h2></div>' +
+        '<div class="btn-row">' +
+        '<button class="btn secondary small" onclick="openMeasurementForm(' + jsArg(item) + ')">Edit</button>' +
+        '<button class="btn danger small" onclick="deleteMeasurement()">Delete</button></div></div>' +
+        '<div class="dim-pills">' + dimPills(item.dimensions) + '</div>' +
+        (item.notes ? '<div class="notes">' + esc(item.notes) + '</div>' : '') +
+        '</div>';
+
+      html += photoSection('measurement', item.photos);
       view.innerHTML = html;
     }
 
@@ -485,6 +532,10 @@
       formContext = { type: 'furniture', editing: item || null };
       fillForm(item, item ? 'Edit Furniture' : 'Add Furniture');
     }
+    function openMeasurementForm(item) {
+      formContext = { type: 'measurement', editing: item || null };
+      fillForm(item, item ? 'Edit Measurement' : 'Add Measurement');
+    }
     function fillForm(entity, title) {
       document.getElementById('formTitle').textContent = title;
       document.getElementById('formError').textContent = '';
@@ -527,14 +578,21 @@
             await api('/api/rooms/' + formContext.editing.id, opts);
           } else {
             const created = await api('/api/rooms', opts);
-            state.view = 'room'; state.roomId = created.id; state.furnitureId = null;
+            state.view = 'room'; state.roomId = created.id; state.measurementId = null; state.furnitureId = null;
+          }
+        } else if (formContext.type === 'measurement') {
+          if (formContext.editing) {
+            await api('/api/rooms/' + state.roomId + '/measurements/' + formContext.editing.id, opts);
+          } else {
+            const created = await api('/api/rooms/' + state.roomId + '/measurements', opts);
+            state.view = 'measurement'; state.measurementId = created.id; state.furnitureId = null;
           }
         } else {
           if (formContext.editing) {
             await api('/api/rooms/' + state.roomId + '/furniture/' + formContext.editing.id, opts);
           } else {
             const created = await api('/api/rooms/' + state.roomId + '/furniture', opts);
-            state.view = 'furniture'; state.furnitureId = created.id;
+            state.view = 'furniture'; state.furnitureId = created.id; state.measurementId = null;
           }
         }
         closeForm();
@@ -552,6 +610,15 @@
         await api('/api/rooms/' + state.roomId, { method: 'DELETE' });
         toast('Room deleted.');
         goHome();
+      } catch (err) { toast(err.message, true); }
+    }
+    async function deleteMeasurement() {
+      if (!confirm('Delete this measurement and its photos? This cannot be undone.')) return;
+      const roomId = state.roomId;
+      try {
+        await api('/api/rooms/' + roomId + '/measurements/' + state.measurementId, { method: 'DELETE' });
+        toast('Measurement deleted.');
+        openRoom(roomId);
       } catch (err) { toast(err.message, true); }
     }
     async function deleteFurniture() {
@@ -572,6 +639,8 @@
       for (const file of input.files) fd.append('photos', file);
       const url = kind === 'room'
         ? '/api/rooms/' + state.roomId + '/photos'
+        : kind === 'measurement'
+        ? '/api/rooms/' + state.roomId + '/measurements/' + state.measurementId + '/photos'
         : '/api/rooms/' + state.roomId + '/furniture/' + state.furnitureId + '/photos';
       try {
         await api(url, { method: 'POST', body: fd });
@@ -584,6 +653,8 @@
       if (!confirm('Delete this photo?')) return;
       const url = kind === 'room'
         ? '/api/rooms/' + state.roomId + '/photos/' + encodeURIComponent(filename)
+        : kind === 'measurement'
+        ? '/api/rooms/' + state.roomId + '/measurements/' + state.measurementId + '/photos/' + encodeURIComponent(filename)
         : '/api/rooms/' + state.roomId + '/furniture/' + state.furnitureId + '/photos/' + encodeURIComponent(filename);
       try {
         await api(url, { method: 'DELETE' });

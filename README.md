@@ -5,10 +5,11 @@ A lightweight, locally-run personal hub for tracking the dimensions of your **ro
 ## What it does
 
 - Browse all your rooms as cards (name + dimensions at a glance).
-- Open a room to see its dimensions, notes, photos, and the furniture inside it.
-- Open a furniture item to see its dimensions, notes, and photos.
-- Add / edit / delete rooms and furniture.
-- Upload photos (JPG / PNG / WEBP) to rooms and furniture, view them in a thumbnail grid, click to enlarge with prev/next navigation, and delete individual photos.
+- Open a room to see its dimensions, notes, photos, its measurements, and the furniture inside it.
+- Record **measurements** for a room — named architectural elements (doorways, windows, walls, hallways, etc.), each with a label, L/W/H dimensions, notes, and photos. Measurements sit between the room overview and the furniture list.
+- Open a measurement or a furniture item to see its dimensions, notes, and photos.
+- Add / edit / delete rooms, measurements, and furniture.
+- Upload photos (JPG / PNG / WEBP) to rooms, measurements, and furniture, view them in a thumbnail grid, click to enlarge with prev/next navigation, and delete individual photos.
 - Everything is saved locally — your data survives restarts.
 
 ## Tech stack
@@ -67,7 +68,12 @@ housedimensions/
 | GET | `/api/rooms/:roomId` | Get one room (with furniture + photos) |
 | POST | `/api/rooms` | Create a room |
 | PUT | `/api/rooms/:roomId` | Update a room |
-| DELETE | `/api/rooms/:roomId` | Delete a room (+ its furniture + photos) |
+| DELETE | `/api/rooms/:roomId` | Delete a room (+ its measurements + furniture + photos) |
+| POST | `/api/rooms/:roomId/measurements` | Add a measurement to a room |
+| PUT | `/api/rooms/:roomId/measurements/:measurementId` | Update a measurement |
+| DELETE | `/api/rooms/:roomId/measurements/:measurementId` | Delete a measurement (+ its photos) |
+| POST | `/api/rooms/:roomId/measurements/:measurementId/photos` | Upload photo(s) to a measurement |
+| DELETE | `/api/rooms/:roomId/measurements/:measurementId/photos/:filename` | Delete a measurement photo |
 | POST | `/api/rooms/:roomId/furniture` | Add furniture to a room |
 | PUT | `/api/rooms/:roomId/furniture/:furnitureId` | Update furniture |
 | DELETE | `/api/rooms/:roomId/furniture/:furnitureId` | Delete furniture (+ its photos) |
